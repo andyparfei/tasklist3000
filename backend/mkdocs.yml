@@ -1,0 +1,52 @@
+site_name: tasklist3000
+repo_url: https://github.com/andyparfei/tasklist3000
+site_url: https://andyparfei.github.io/tasklist3000
+site_description: This is a smooth task list app called Tasklist3000. We are gonna beat Notion any day now.
+site_author: Antti Parviainen
+edit_uri: edit/main/docs/
+repo_name: andyparfei/tasklist3000
+copyright: Maintained by <a href="https://andyparfei.com">andyparfei</a>.
+
+nav:
+  - Home: index.md
+  - Modules: modules.md
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: ["src/tasklist3000"]
+theme:
+  name: material
+  feature:
+    tabs: true
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: white
+      accent: deep orange
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      accent: deep orange
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  icon:
+    repo: fontawesome/brands/github
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/andyparfei/tasklist3000
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/tasklist3000
+
+markdown_extensions:
+  - toc:
+      permalink: true
+  - pymdownx.arithmatex:
+      generic: true
