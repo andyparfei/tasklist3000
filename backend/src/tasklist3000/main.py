@@ -1,11 +1,12 @@
 from robyn import Robyn
 import sqlite3
 import json
+import os
 
 app = Robyn(__file__)
 
 # Initialize SQLite database
-conn = sqlite3.connect('tasks.db')
+conn = sqlite3.connect('tasks.db', check_same_thread=False)
 c = conn.cursor()
 c.execute('''CREATE TABLE IF NOT EXISTS tasks
              (id INTEGER PRIMARY KEY, title TEXT, description TEXT)''')
@@ -31,7 +32,7 @@ async def get_tasks(request):
 # Define the endpoint to create a new task
 @app.post("/tasks")
 async def create_task(request):
-    data = await request.json()
+    data = request.json()
     title = data.get('title')
     description = data.get('description')
     c.execute('INSERT INTO tasks (title, description) VALUES (?, ?)', (title, description))
@@ -39,9 +40,10 @@ async def create_task(request):
     return "Task created successfully"
 
 # Define the endpoint to update an existing task
-@app.put("/tasks/{task_id}")
-async def update_task(request, task_id):
-    data = await request.json()
+@app.put("/tasks/:task_id")
+async def update_task(request):
+    task_id = request.path_params.get("crime_id")
+    data = request.json()
     title = data.get('title')
     description = data.get('description')
     c.execute('UPDATE tasks SET title = ?, description = ? WHERE id = ?', (title, description, task_id))
@@ -49,11 +51,13 @@ async def update_task(request, task_id):
     return "Task updated successfully"
 
 # Define the endpoint to delete a task
-@app.delete("/tasks/{task_id}")
-async def delete_task(request, task_id):
+@app.delete("/tasks/:task_id")
+async def delete_task(request):
+    task_id = request.path_params.get("crime_id")
     c.execute('DELETE FROM tasks WHERE id = ?', (task_id,))
     conn.commit()
     return "Task deleted successfully"
 
 # Start the Robyn app on port 8080
-app.start(port=8080)
+if __name__ == "__main__":
+    app.start(port=8080)
