@@ -1,12 +1,17 @@
-<script>
-  import { onMount } from 'svelte';
+<script lang="ts">
+  import { onMount, afterUpdate } from 'svelte';
+  import Muuri from 'muuri';
+  import { Button } from "$lib/components/ui/button";
+  import { Input } from "$lib/components/ui/input";
+  import { Textarea } from "$lib/components/ui/textarea";
 
   let tasks = [];
   let loading = true;
-  let error = null;
+  let error: string | null = null;
   let newTask = { title: '', description: '' };
   let editingTask = null;
   let showAddForm = false;
+  let grid: Muuri; // Muuri grid instance
 
   // Fetch all tasks
   async function fetchTasks() {
@@ -15,7 +20,14 @@
       const response = await fetch('/tasks');
       if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
       tasks = await response.json();
-    } catch (err) {
+      // Refresh Muuri layout after tasks are loaded
+      setTimeout(() => {
+        if (grid) {
+          grid.refreshItems();
+          grid.layout();
+        }
+      }, 0);
+    } catch (err: any) {
       error = err.message;
       console.error('Error fetching tasks:', err);
     } finally {
@@ -26,34 +38,36 @@
   // Add a new task
   async function addTask() {
     if (!newTask.title.trim()) return;
-    
     try {
       const response = await fetch('/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newTask)
       });
-      
       if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-      
       await fetchTasks();
       newTask = { title: '', description: '' };
       showAddForm = false;
-    } catch (err) {
+    } catch (err: any) {
       error = err.message;
       console.error('Error adding task:', err);
     }
   }
 
   // Delete a task
-  async function deleteTask(id) {
+  async function deleteTask(id: number) {
     if (!confirm('Are you sure you want to delete this task?')) return;
-    
     try {
       const response = await fetch(`/tasks/${id}`, { method: 'DELETE' });
       if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
       tasks = tasks.filter(task => task.id !== id);
-    } catch (err) {
+      if (grid) {
+        const itemsToRemove = grid.getItems().filter(
+          item => item.getElement().dataset.id === id.toString()
+        );
+        grid.remove(itemsToRemove, { removeElements: true });
+      }
+    } catch (err: any) {
       error = err.message;
       console.error('Error deleting task:', err);
     }
@@ -80,330 +94,131 @@
           description: editingTask.description
         })
       });
-      
       if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-      
-      tasks = tasks.map(task => 
+      tasks = tasks.map(task =>
         task.id === editingTask.id ? editingTask : task
       );
-      
       editingTask = null;
-    } catch (err) {
+    } catch (err: any) {
       error = err.message;
       console.error('Error updating task:', err);
     }
   }
 
-  onMount(fetchTasks);
+  // Update tasks order based on Muuri’s new order
+  function updateTaskOrder() {
+    const newOrder = grid.getItems().map(item => item.getElement().dataset.id);
+    tasks = newOrder.map(id =>
+      tasks.find(task => task.id.toString() === id)
+    );
+  }
+
+  onMount(() => {
+    fetchTasks();
+    // Wait for the task items to render before initializing Muuri
+    setTimeout(() => {
+      grid = new Muuri('.task-list', {
+        dragEnabled: true,
+        layoutDuration: 400,
+        layoutEasing: 'ease'
+      });
+      grid.on('dragEnd', updateTaskOrder);
+    }, 100);
+  });
+
+  // Refresh the Muuri grid after each update
+  afterUpdate(() => {
+    if (grid) {
+      grid.refreshItems();
+      grid.layout();
+    }
+  });
 </script>
 
-<main>
-  <div class="container">
-    <h1>TaskList 3000</h1>
-    
+<main class="p-6 max-w-4xl mx-auto">
+  <div class="bg-white shadow-lg rounded-lg p-8">
+    <h1 class="text-3xl font-bold text-center text-slate-600 mb-6">TaskList 3000</h1>
+
     {#if error}
-      <div class="error-banner">
+      <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 flex justify-between items-center">
         <p>Error: {error}</p>
-        <button on:click={() => error = null}>Dismiss</button>
+        <Button variant="link" on:click={() => error = null}>Dismiss</Button>
       </div>
     {/if}
-    
-    <div class="actions">
+
+    <div class="flex justify-end mb-4">
       {#if !showAddForm}
-        <button class="btn-primary" on:click={() => showAddForm = true}>Add New Task</button>
+        <Button on:click={() => showAddForm = true}>Add New Task</Button>
       {/if}
     </div>
-    
+
     {#if showAddForm}
-      <div class="form-container">
-        <h2>Add New Task</h2>
+      <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-6">
+        <h2 class="text-xl font-semibold mb-4">Add New Task</h2>
         <form on:submit|preventDefault={addTask}>
-          <div class="form-group">
-            <label for="title">Title</label>
-            <input 
-              id="title"
-              type="text" 
-              bind:value={newTask.title} 
-              placeholder="Task title" 
-              required
-            />
+          <div class="mb-4">
+            <label for="title" class="block text-sm font-medium text-gray-700">Title</label>
+            <Input id="title" type="text" bind:value={newTask.title} placeholder="Task title" required class="mt-1 block w-full"/>
           </div>
-          
-          <div class="form-group">
-            <label for="description">Description</label>
-            <textarea 
-              id="description"
-              bind:value={newTask.description} 
-              placeholder="Task description"
-              rows="3"
-            ></textarea>
+          <div class="mb-4">
+            <label for="description" class="block text-sm font-medium text-gray-700">Description</label>
+            <Textarea id="description" bind:value={newTask.description} placeholder="Task description" rows="3" class="mt-1 block w-full"/>
           </div>
-          
-          <div class="form-actions">
-            <button type="submit" class="btn-primary">Save Task</button>
-            <button type="button" class="btn-secondary" on:click={() => showAddForm = false}>Cancel</button>
+          <div class="flex justify-end space-x-2">
+            <Button type="submit">Save Task</Button>
+            <Button variant="secondary" type="button" on:click={() => showAddForm = false}>Cancel</Button>
           </div>
         </form>
       </div>
     {/if}
-    
+
     {#if loading}
-      <div class="loading">Loading tasks...</div>
+      <div class="text-center text-gray-500 italic">Loading tasks...</div>
     {:else if tasks.length === 0}
-      <div class="empty-state">
-        <p>No tasks found. Create your first task!</p>
-      </div>
+      <div class="text-center text-gray-500 py-10">No tasks found. Create your first task!</div>
     {:else}
-      <ul class="task-list">
+      <!-- Muuri grid container -->
+      <div class="task-list grid grid-cols-1 gap-4">
         {#each tasks as task (task.id)}
-          <li class="task-item">
+          <div class="task-item bg-white border border-gray-200 rounded-lg p-4 shadow hover:shadow-md" data-id={task.id}>
             {#if editingTask && editingTask.id === task.id}
               <div class="edit-form">
-                <div class="form-group">
-                  <label for="edit-title">Title</label>
-                  <input 
-                    id="edit-title"
-                    type="text" 
-                    bind:value={editingTask.title} 
-                    required
-                  />
+                <div class="mb-4">
+                  <label for="edit-title" class="block text-sm font-medium text-gray-700">Title</label>
+                  <Input id="edit-title" type="text" bind:value={editingTask.title} required class="mt-1 block w-full"/>
                 </div>
-                
-                <div class="form-group">
-                  <label for="edit-description">Description</label>
-                  <textarea 
-                    id="edit-description"
-                    bind:value={editingTask.description} 
-                    rows="3"
-                  ></textarea>
+                <div class="mb-4">
+                  <label for="edit-description" class="block text-sm font-medium text-gray-700">Description</label>
+                  <Textarea id="edit-description" bind:value={editingTask.description} rows="3" class="mt-1 block w-full"/>
                 </div>
-                
-                <div class="item-actions">
-                  <button on:click={saveEdit} class="btn-primary">Save</button>
-                  <button on:click={cancelEdit} class="btn-secondary">Cancel</button>
+                <div class="flex justify-end space-x-2">
+                  <Button on:click={saveEdit}>Save</Button>
+                  <Button variant="secondary" on:click={cancelEdit}>Cancel</Button>
                 </div>
               </div>
             {:else}
               <div class="task-content">
-                <h3>{task.title}</h3>
+                <div class="flex items-center justify-between">
+                  <h3 class="text-lg font-semibold text-gray-800">{task.title}</h3>
+                  <!-- Drag handle (using an icon) -->
+                  <div class="drag-handle cursor-move text-gray-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M4 5a1 1 0 112 0 1 1 0 11-2 0zm0 4a1 1 0 112 0 1 1 0 11-2 0zm0 4a1 1 0 112 0 1 1 0 11-2 0zm4-8a1 1 0 112 0 1 1 0 11-2 0zm0 4a1 1 0 112 0 1 1 0 11-2 0zm0 4a1 1 0 112 0 1 1 0 11-2 0zm4-8a1 1 0 112 0 1 1 0 11-2 0zm0 4a1 1 0 112 0 1 1 0 11-2 0zm0 4a1 1 0 112 0 1 1 0 11-2 0z" clip-rule="evenodd" />
+                    </svg>
+                  </div>
+                </div>
                 {#if task.description}
-                  <p>{task.description}</p>
+                  <p class="text-gray-600 mt-2">{task.description}</p>
                 {/if}
-                
-                <div class="item-actions">
-                  <button on:click={() => startEdit(task)} class="btn-secondary">Edit</button>
-                  <button on:click={() => deleteTask(task.id)} class="btn-danger">Delete</button>
+                <div class="flex justify-end mt-4 space-x-2">
+                  <Button variant="secondary" on:click={() => startEdit(task)}>Edit</Button>
+                  <Button variant="destructive" on:click={() => deleteTask(task.id)}>Delete</Button>
                 </div>
               </div>
             {/if}
-          </li>
+          </div>
         {/each}
-      </ul>
+      </div>
     {/if}
   </div>
 </main>
-
-<style>
-  main {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    color: #333;
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 20px;
-  }
-  
-  .container {
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    padding: 30px;
-  }
-  
-  h1 {
-    color: #2563eb;
-    margin-top: 0;
-    text-align: center;
-    margin-bottom: 30px;
-  }
-  
-  .actions {
-    margin-bottom: 20px;
-    display: flex;
-    justify-content: flex-end;
-  }
-  
-  .btn-primary {
-    background-color: #2563eb;
-    color: white;
-    border: none;
-    padding: 10px 16px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: 500;
-    transition: background-color 0.2s;
-  }
-  
-  .btn-primary:hover {
-    background-color: #1d4ed8;
-  }
-  
-  .btn-secondary {
-    background-color: #f3f4f6;
-    color: #4b5563;
-    border: 1px solid #d1d5db;
-    padding: 9px 15px;
-    border-radius: 4px;
-    cursor: pointer;
-    margin-left: 10px;
-    transition: background-color 0.2s;
-  }
-  
-  .btn-secondary:hover {
-    background-color: #e5e7eb;
-  }
-  
-  .btn-danger {
-    background-color: #ef4444;
-    color: white;
-    border: none;
-    padding: 9px 15px;
-    border-radius: 4px;
-    cursor: pointer;
-    margin-left: 10px;
-    transition: background-color 0.2s;
-  }
-  
-  .btn-danger:hover {
-    background-color: #dc2626;
-  }
-  
-  .form-container {
-    background-color: #f9fafb;
-    border-radius: 6px;
-    padding: 20px;
-    margin-bottom: 25px;
-    border: 1px solid #e5e7eb;
-  }
-  
-  .form-container h2 {
-    margin-top: 0;
-    font-size: 1.25rem;
-    color: #1f2937;
-    margin-bottom: 20px;
-  }
-  
-  .form-group {
-    margin-bottom: 16px;
-  }
-  
-  .form-group label {
-    display: block;
-    margin-bottom: 6px;
-    font-weight: 500;
-    color: #4b5563;
-  }
-  
-  input[type="text"], textarea {
-    width: 100%;
-    padding: 10px 12px;
-    border: 1px solid #d1d5db;
-    border-radius: 4px;
-    font-size: 1rem;
-    font-family: inherit;
-  }
-  
-  input[type="text"]:focus, textarea:focus {
-    outline: none;
-    border-color: #93c5fd;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-  }
-  
-  .form-actions {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 20px;
-  }
-  
-  .task-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-  }
-  
-  .task-item {
-    border: 1px solid #e5e7eb;
-    border-radius: 6px;
-    margin-bottom: 15px;
-    overflow: hidden;
-    transition: box-shadow 0.2s, transform 0.2s;
-  }
-  
-  .task-item:hover {
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    transform: translateY(-2px);
-  }
-  
-  .task-content {
-    padding: 20px;
-  }
-  
-  .task-content h3 {
-    margin-top: 0;
-    margin-bottom: 10px;
-    color: #1f2937;
-  }
-  
-  .task-content p {
-    color: #6b7280;
-    margin-top: 0;
-    margin-bottom: 15px;
-  }
-  
-  .item-actions {
-    display: flex;
-    justify-content: flex-end;
-  }
-  
-  .edit-form {
-    padding: 20px;
-  }
-  
-  .loading {
-    text-align: center;
-    padding: 30px;
-    color: #6b7280;
-    font-style: italic;
-  }
-  
-  .empty-state {
-    text-align: center;
-    padding: 40px 0;
-    color: #6b7280;
-  }
-  
-  .error-banner {
-    background-color: #fee2e2;
-    border: 1px solid #fecaca;
-    border-radius: 4px;
-    padding: 12px 16px;
-    margin-bottom: 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  
-  .error-banner p {
-    margin: 0;
-    color: #b91c1c;
-  }
-  
-  .error-banner button {
-    background: none;
-    border: none;
-    color: #b91c1c;
-    font-weight: 500;
-    cursor: pointer;
-    padding: 0;
-    font-size: 0.875rem;
-  }
-</style>

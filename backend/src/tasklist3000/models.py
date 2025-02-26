@@ -1,9 +1,10 @@
-# models.py
+from datetime import datetime
 import os
 
-from sqlalchemy import create_engine, Column, Integer, String
+from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.engine import Engine
+
 
 DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./tasks.db")
 
@@ -18,3 +19,7 @@ class Task(Base):
     id: int = Column(Integer, primary_key=True, index=True)
     title: str = Column(String, index=True)
     description: str = Column(String)
+    full_text: str = Column(Text)
+    color: str = Column(String)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    modified_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
