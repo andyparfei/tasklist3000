@@ -20,5 +20,7 @@ class Task(Base):
     description: str = Column(String)
     full_text: str = Column(Text)
     color: str = Column(String)
+    priority: str = Column(String)
+    status: str = Column(String)
     created_at = Column(DateTime, default=lambda: datetime.now(datetime.timezone.utc))
     modified_at = Column(DateTime, default=lambda: datetime.now(datetime.timezone.utc), onupdate=lambda: datetime.now(datetime.timezone.utc))

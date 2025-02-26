@@ -1,5 +1,6 @@
 <script>
   import TaskList from '$lib/components/TaskList.svelte';
+	import TaskManager from '../lib/components/TaskManager.svelte';
 </script>
 
 <svelte:head>
@@ -7,4 +8,5 @@
   <meta name="description" content="A simple task management application">
 </svelte:head>
 
-<TaskList />
+<!--<TaskList />-->
+<TaskManager />
