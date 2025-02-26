@@ -1,4 +1,4 @@
-from typing import List, Optional, Dict
+from typing import Optional
 
 from robyn import Request
 from sqlalchemy.exc import IntegrityError
@@ -6,13 +6,16 @@ from sqlalchemy.orm import Session
 
 from .models import Task
 
+
 def get_task(db: Session, task_id: int) -> Optional[Task]:
     return db.query(Task).filter(Task.id == task_id).first()
 
-def get_tasks(db: Session, skip: int = 0, limit: int = 100) -> List[Task]:
+
+def get_tasks(db: Session, skip: int = 0, limit: int = 100) -> list[Task]:
     return db.query(Task).offset(skip).limit(limit).all()
 
-def create_task(db: Session, task: Dict[str, Task]) -> Task:
+
+def create_task(db: Session, task: dict[str, Task]) -> Task:
     db_task = Task(**task)
     db.add(db_task)
     try:
@@ -23,7 +26,8 @@ def create_task(db: Session, task: Dict[str, Task]) -> Task:
         raise ValueError("Task creation failed due to missing required fields") from e
     return db_task
 
-def update_task(db: Session, task_id: int, task: Dict[str, Request]) -> Optional[Task]:
+
+def update_task(db: Session, task_id: int, task: dict[str, Request]) -> Optional[Task]:
     db_task = get_task(db, task_id)
     if db_task is None:
         return None
@@ -32,6 +36,7 @@ def update_task(db: Session, task_id: int, task: Dict[str, Request]) -> Optional
     db.commit()
     db.refresh(db_task)
     return db_task
+
 
 def delete_task(db: Session, task_id: int) -> bool:
     db_task = get_task(db, task_id)

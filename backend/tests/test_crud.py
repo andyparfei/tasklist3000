@@ -2,14 +2,15 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from tasklist3000.models import Base, Task
 from tasklist3000.crud import (
+    create_task,
+    delete_task,
     get_task,
     get_tasks,
-    create_task,
     update_task,
-    delete_task,
 )
+from tasklist3000.models import Base
+
 
 # Create an in-memory SQLite database for testing
 @pytest.fixture(scope="function")
@@ -24,6 +25,7 @@ def db_session():
     finally:
         db.close()
 
+
 def test_create_task(db_session):
     task_data = {
         "title": "Test Task",
@@ -32,12 +34,13 @@ def test_create_task(db_session):
         "color": "Red",
         "priority": "Low",
         "status": "Pending",
-        }
+    }
     new_task = create_task(db_session, task_data)
     # Check that an ID was assigned and fields are correct.
     assert new_task.id is not None
     assert new_task.title == task_data["title"]
     assert new_task.description == task_data["description"]
+
 
 def test_create_task_missing_fields(db_session):
     task_data = {
@@ -46,9 +49,10 @@ def test_create_task_missing_fields(db_session):
         "color": "Red",
         "priority": "Low",
         "status": "Pending",
-        }
+    }
     with pytest.raises(ValueError, match="Task creation failed due to missing required fields"):
         create_task(db_session, task_data)
+
 
 def test_get_task(db_session):
     # First, create a task
@@ -59,7 +63,7 @@ def test_get_task(db_session):
         "color": "Red",
         "priority": "Low",
         "status": "Pending",
-        }
+    }
     created = create_task(db_session, task_data)
     # Retrieve the task using its ID
     fetched = get_task(db_session, created.id)
@@ -67,9 +71,11 @@ def test_get_task(db_session):
     assert fetched.id == created.id
     assert fetched.title == task_data["title"]
 
+
 def test_get_nonexistent_task(db_session):
     fetched = get_task(db_session, 999)
     assert fetched is None
+
 
 def test_update_task(db_session):
     # Create a task to update
@@ -80,13 +86,13 @@ def test_update_task(db_session):
         "color": "Red",
         "priority": "Low",
         "status": "Pending",
-        }
+    }
     created = create_task(db_session, task_data)
-    
+
     update_data = {
         "title": "Updated Title",
         "description": "Updated description",
-        }
+    }
     updated = update_task(db_session, created.id, update_data)
     # Check that the returned task has updated fields
     assert updated is not None
@@ -98,13 +104,15 @@ def test_update_task(db_session):
     assert updated.priority == task_data["priority"]
     assert updated.status == task_data["status"]
 
+
 def test_update_nonexistent_task(db_session):
     update_data = {
         "title": "Updated Title",
         "description": "Updated description",
-        }
+    }
     updated = update_task(db_session, 999, update_data)
     assert updated is None
+
 
 def test_delete_task(db_session):
     # Create a task to delete
@@ -115,18 +123,20 @@ def test_delete_task(db_session):
         "color": "Red",
         "priority": "Low",
         "status": "Pending",
-        }
+    }
     created = create_task(db_session, task_data)
-    
+
     # Delete the task and verify that deletion was successful
     result = delete_task(db_session, created.id)
     assert result is True
     # Now, fetching the task should return None
     assert get_task(db_session, created.id) is None
 
+
 def test_delete_nonexistent_task(db_session):
     result = delete_task(db_session, 999)
     assert result is False
+
 
 def test_get_tasks(db_session):
     # Create several tasks
@@ -138,7 +148,7 @@ def test_get_tasks(db_session):
             "color": "Red",
             "priority": "Low",
             "status": "Pending",
-         },
+        },
         {
             "title": "Task 2",
             "description": "Description 2",
@@ -162,6 +172,7 @@ def test_get_tasks(db_session):
     tasks = get_tasks(db_session)
     assert len(tasks) == len(tasks_data)
 
+
 def test_get_tasks_with_pagination(db_session):
     # Create several tasks
     tasks_data = [
@@ -172,7 +183,7 @@ def test_get_tasks_with_pagination(db_session):
             "color": "Red",
             "priority": "Low",
             "status": "Pending",
-         },
+        },
         {
             "title": "Task 2",
             "description": "Description 2",
