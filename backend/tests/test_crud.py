@@ -29,9 +29,9 @@ def test_create_task(db_session):
         "title": "Test Task",
         "description": "This is a test task",
         "full_text": "Sample full text",
-        "color": "Sample color",
-        "priority": "Sample priority",
-        "status": "Sample status",
+        "color": "Red",
+        "priority": "Low",
+        "status": "Pending",
         }
     new_task = create_task(db_session, task_data)
     # Check that an ID was assigned and fields are correct.
@@ -43,9 +43,9 @@ def test_create_task_missing_fields(db_session):
     task_data = {
         "description": "This is a test task without a title",
         "full_text": "Sample full text",
-        "color": "Sample color",
-        "priority": "Sample priority",
-        "status": "Sample status",
+        "color": "Red",
+        "priority": "Low",
+        "status": "Pending",
         }
     with pytest.raises(ValueError, match="Task creation failed due to missing required fields"):
         create_task(db_session, task_data)
@@ -56,9 +56,9 @@ def test_get_task(db_session):
         "title": "Sample Task",
         "description": "Sample description",
         "full_text": "Sample full text",
-        "color": "Sample color",
-        "priority": "Sample priority",
-        "status": "Sample status",
+        "color": "Red",
+        "priority": "Low",
+        "status": "Pending",
         }
     created = create_task(db_session, task_data)
     # Retrieve the task using its ID
@@ -77,9 +77,9 @@ def test_update_task(db_session):
         "title": "Old Title",
         "description": "Old description",
         "full_text": "Sample full text",
-        "color": "Sample color",
-        "priority": "Sample priority",
-        "status": "Sample status",
+        "color": "Red",
+        "priority": "Low",
+        "status": "Pending",
         }
     created = create_task(db_session, task_data)
     
@@ -112,9 +112,9 @@ def test_delete_task(db_session):
         "title": "Task to Delete",
         "description": "Delete me",
         "full_text": "Sample full text",
-        "color": "Sample color",
-        "priority": "Sample priority",
-        "status": "Sample status",
+        "color": "Red",
+        "priority": "Low",
+        "status": "Pending",
         }
     created = create_task(db_session, task_data)
     
@@ -135,25 +135,25 @@ def test_get_tasks(db_session):
             "title": "Task 1",
             "description": "Description 1",
             "full_text": "Sample full text",
-            "color": "Sample color",
-            "priority": "Sample priority",
-            "status": "Sample status",
+            "color": "Red",
+            "priority": "Low",
+            "status": "Pending",
          },
         {
             "title": "Task 2",
             "description": "Description 2",
             "full_text": "Sample full text",
-            "color": "Sample color",
-            "priority": "Sample priority",
-            "status": "Sample status",
+            "color": "Red",
+            "priority": "Low",
+            "status": "Pending",
         },
         {
             "title": "Task 3",
             "description": "Description 3",
             "full_text": "Sample full text",
-            "color": "Sample color",
-            "priority": "Sample priority",
-            "status": "Sample status",
+            "color": "Red",
+            "priority": "Low",
+            "status": "Pending",
         },
     ]
     for data in tasks_data:
@@ -169,25 +169,25 @@ def test_get_tasks_with_pagination(db_session):
             "title": "Task 1",
             "description": "Description 1",
             "full_text": "Sample full text",
-            "color": "Sample color",
-            "priority": "Sample priority",
-            "status": "Sample status",
+            "color": "Red",
+            "priority": "Low",
+            "status": "Pending",
          },
         {
             "title": "Task 2",
             "description": "Description 2",
             "full_text": "Sample full text",
-            "color": "Sample color",
-            "priority": "Sample priority",
-            "status": "Sample status",
+            "color": "Red",
+            "priority": "Low",
+            "status": "Pending",
         },
         {
             "title": "Task 3",
             "description": "Description 3",
             "full_text": "Sample full text",
-            "color": "Sample color",
-            "priority": "Sample priority",
-            "status": "Sample status",
+            "color": "Red",
+            "priority": "Low",
+            "status": "Pending",
         },
     ]
     for data in tasks_data:
