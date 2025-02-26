@@ -1,6 +1,5 @@
-
 import json
-from typing import Dict
+from typing import Any, Dict, List, Union
 
 from robyn import Robyn, Request, ALLOW_CORS
 
@@ -9,12 +8,12 @@ from .models import SessionLocal, Task, Base, engine
 from .config import PRIORITY_VALUES, STATUS_VALUES, COLOR_VALUES
 
 app = Robyn(__file__)
-ALLOW_CORS(app, origins = ["http://localhost:5173"])
+ALLOW_CORS(app, origins=["http://localhost:5173"])
 
 Base.metadata.create_all(bind=engine)
 
-
-def serialize_task(task: Task) -> Dict[str, Request]:
+# Return a dictionary with id as int and title, description as str.
+def serialize_task(task: Task) -> Dict[str, Union[int, str]]:
     return {
         "id": task.id,
         "title": task.title,
@@ -23,38 +22,38 @@ def serialize_task(task: Task) -> Dict[str, Request]:
 
 # Define the root endpoint
 @app.get("/")
-async def h(request: Request) -> str:
+async def root(request: Request) -> str:
     return "Hello, world!"
 
-# Define the status endpoint
+# Define the status endpoint (renamed to avoid duplicate function names)
 @app.get("/status")
-async def h() -> str:
+async def status_endpoint(request: Request) -> str:
     return "Up and running"
 
 @app.get("/config")
-async def get_config() -> Dict[str, list]:
+async def get_config(request: Request) -> Dict[str, List[Any]]:
     return {
         "priority_values": PRIORITY_VALUES,
         "status_values": STATUS_VALUES,
         "color_values": COLOR_VALUES
     }
 
-# Define the endpoint to retrieve all tasks
 @app.get("/tasks")
 async def get_tasks(request: Request) -> str:
     with SessionLocal() as db:
-        skip = request.query_params.get("skip", "0")
-        limit = request.query_params.get("limit", "100")
+        # Force fallback in case query_params returns None.
+        skip = int(request.query_params.get("skip") or "0")
+        limit = int(request.query_params.get("limit") or "100")
         tasks = crud.get_tasks(db, skip=skip, limit=limit)
-    tasks = [serialize_task(task) for task in tasks]
-    return json.dumps(tasks)
+    tasks_serialized = [serialize_task(task) for task in tasks]
+    return json.dumps(tasks_serialized)
 
-# Define the endpoint to create a new task
+# Endpoint to create a new task
 @app.post("/tasks")
-async def add_task(request: Request) -> Dict[str, Request]:
+async def add_task(request: Request) -> Dict[str, Union[str, int]]:
     with SessionLocal() as db:
-        task = request.json()
-        insertion = crud.create_task(db, task)
+        task_data = request.json()
+        insertion = crud.create_task(db, task_data)
 
     if insertion is None:
         raise Exception("Task not added")
@@ -65,22 +64,28 @@ async def add_task(request: Request) -> Dict[str, Request]:
         "id": insertion.id  # Return the new task's ID
     }
 
-# Define the endpoint to get a single task
+# Endpoint to get a single task
 @app.get("/tasks/:task_id")
 async def get_task(request: Request) -> Task:
-    task_id = int(request.path_params.get("task_id"))
+    task_id_str = request.path_params.get("task_id")
+    if task_id_str is None:
+        raise Exception("Task id missing")
+    task_id = int(task_id_str)
     with SessionLocal() as db:
         task = crud.get_task(db, task_id=task_id)
 
     if task is None:
-        raise Exception("task not found")
+        raise Exception("Task not found")
 
     return task
 
-# Define the endpoint to update an existing task
+# Endpoint to update an existing task
 @app.put("/tasks/:task_id")
 async def update_task(request: Request) -> Dict[str, str]:
-    task_id = int(request.path_params.get("task_id"))
+    task_id_str = request.path_params.get("task_id")
+    if task_id_str is None:
+        raise Exception("Task id missing")
+    task_id = int(task_id_str)
     with SessionLocal() as db:
         task_data = request.json()
         updated = crud.update_task(db, task_id=task_id, task=task_data)
@@ -88,14 +93,17 @@ async def update_task(request: Request) -> Dict[str, str]:
         raise Exception("Task not updated")
     return {"description": "Task updated successfully"}
 
-# Define the endpoint to delete a task
+# Endpoint to delete a task
 @app.delete("/tasks/:task_id")
 async def delete_task(request: Request) -> Dict[str, str]:
-    task_id = int(request.path_params.get("task_id"))
+    task_id_str = request.path_params.get("task_id")
+    if task_id_str is None:
+        raise Exception("Task id missing")
+    task_id = int(task_id_str)
     with SessionLocal() as db:
         success = crud.delete_task(db, task_id=task_id)
     if not success:
-        raise Exception("task not found")
+        raise Exception("Task not found")
     return {"description": "Task deleted successfully"}
 
 # Start the Robyn app on port 8080
