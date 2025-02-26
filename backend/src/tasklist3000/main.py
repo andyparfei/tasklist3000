@@ -8,7 +8,7 @@ from . import crud
 from .models import SessionLocal, Task
 
 app = Robyn(__file__)
-ALLOW_CORS(app, origins = ["http://localhost:5001/"])
+ALLOW_CORS(app, origins = ["http://localhost:5173"])
 
 def serialize_task(task: Task) -> Dict[str, Request]:
     return {
