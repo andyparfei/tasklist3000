@@ -5,11 +5,14 @@ from typing import Dict
 from robyn import Robyn, Request, ALLOW_CORS
 
 from . import crud
-from .models import SessionLocal, Task
+from .models import SessionLocal, Task, Base, engine
 from .config import PRIORITY_VALUES, STATUS_VALUES, COLOR_VALUES
 
 app = Robyn(__file__)
 ALLOW_CORS(app, origins = ["http://localhost:5173"])
+
+Base.metadata.create_all(bind=engine)
+
 
 def serialize_task(task: Task) -> Dict[str, Request]:
     return {
@@ -25,11 +28,11 @@ async def h(request: Request) -> str:
 
 # Define the status endpoint
 @app.get("/status")
-async def h(request: Request) -> str:
+async def h() -> str:
     return "Up and running"
 
 @app.get("/config")
-async def get_config():
+async def get_config() -> Dict[str, list]:
     return {
         "priority_values": PRIORITY_VALUES,
         "status_values": STATUS_VALUES,
