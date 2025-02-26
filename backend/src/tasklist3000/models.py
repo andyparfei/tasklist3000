@@ -5,7 +5,6 @@ from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.engine import Engine
 
-
 DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./tasks.db")
 
 engine: Engine = create_engine(DATABASE_URL)
@@ -21,5 +20,5 @@ class Task(Base):
     description: str = Column(String)
     full_text: str = Column(Text)
     color: str = Column(String)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    modified_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(datetime.timezone.utc))
+    modified_at = Column(DateTime, default=lambda: datetime.now(datetime.timezone.utc), onupdate=lambda: datetime.now(datetime.timezone.utc))
