@@ -1,7 +1,7 @@
 
 # Taskmaster3000
 
-## Getting started with Taskmaster3000
+## Getting started with Tasklist 3000
 
 ### 1. Clone the repo
 
