@@ -2,12 +2,13 @@
 import json
 from typing import Dict
 
-from robyn import Robyn, Request
+from robyn import Robyn, Request, ALLOW_CORS
 
 from . import crud
 from .models import SessionLocal, Task
 
 app = Robyn(__file__)
+ALLOW_CORS(app, origins = ["http://localhost:5001/"])
 
 def serialize_task(task: Task) -> Dict[str, Request]:
     return {
