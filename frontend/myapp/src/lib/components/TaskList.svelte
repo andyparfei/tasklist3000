@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { onMount, afterUpdate } from 'svelte';
-  import Muuri from 'muuri';
+  import { onMount, tick } from 'svelte';
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
   import { Textarea } from "$lib/components/ui/textarea";
@@ -11,7 +10,7 @@
   let newTask = { title: '', description: '' };
   let editingTask = null;
   let showAddForm = false;
-  let grid: Muuri; // Muuri grid instance
+  let grid: any; // Muuri grid instance
 
   // Fetch all tasks
   async function fetchTasks() {
@@ -113,8 +112,13 @@
     );
   }
 
-  onMount(() => {
-    fetchTasks();
+  onMount(async () => {
+    await fetchTasks();
+
+    // Dynamically import Muuri so that it only loads on the client
+    const MuuriModule = await import('muuri');
+    const Muuri = MuuriModule.default;
+
     // Wait for the task items to render before initializing Muuri
     setTimeout(() => {
       grid = new Muuri('.task-list', {
@@ -126,13 +130,13 @@
     }, 100);
   });
 
-  // Refresh the Muuri grid after each update
-  afterUpdate(() => {
-    if (grid) {
+  // Refresh the Muuri grid after each update using reactive statement
+  $: if (grid && tasks) {
+    tick().then(() => {
       grid.refreshItems();
       grid.layout();
-    }
-  });
+    });
+  }
 </script>
 
 <main class="p-6 max-w-4xl mx-auto">
@@ -221,4 +225,3 @@
       </div>
     {/if}
   </div>
-</main>
