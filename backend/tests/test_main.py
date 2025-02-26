@@ -15,6 +15,8 @@ os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 from tasklist3000.main import app
 from tasklist3000.models import Base, engine
 
+from tasklist3000.config import PRIORITY_VALUES, STATUS_VALUES, COLOR_VALUES
+
 # Setup and teardown for the SQLite database and server
 @pytest.fixture(scope="module", autouse=True)
 def setup_server_and_db() -> Generator[None, None, None]:
@@ -107,3 +109,11 @@ def test_delete_task() -> None:
     assert response.status_code == 200
     data = response.json()
     assert data.get("description") == "Task deleted successfully"
+
+def test_get_config() -> None:
+    response = httpx.get(f"{BASE_URL}/config")
+    assert response.status_code == 200
+    config = response.json()
+    assert config["priority_values"] == PRIORITY_VALUES
+    assert config["status_values"] == STATUS_VALUES
+    assert config["color_values"] == COLOR_VALUES

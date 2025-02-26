@@ -6,6 +6,7 @@ from robyn import Robyn, Request, ALLOW_CORS
 
 from . import crud
 from .models import SessionLocal, Task
+from .config import PRIORITY_VALUES, STATUS_VALUES, COLOR_VALUES
 
 app = Robyn(__file__)
 ALLOW_CORS(app, origins = ["http://localhost:5173"])
@@ -26,6 +27,14 @@ async def h(request: Request) -> str:
 @app.get("/status")
 async def h(request: Request) -> str:
     return "Up and running"
+
+@app.get("/config")
+async def get_config():
+    return {
+        "priority_values": PRIORITY_VALUES,
+        "status_values": STATUS_VALUES,
+        "color_values": COLOR_VALUES
+    }
 
 # Define the endpoint to retrieve all tasks
 @app.get("/tasks")
