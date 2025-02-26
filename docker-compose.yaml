@@ -1,0 +1,19 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "5001:8080"  # Adjust the port as needed
+    restart: unless-stopped
+
+#  frontend:
+#    build:
+#      context: ./frontend
+#      dockerfile: Dockerfile
+#    ports:
+#      - "5000:3000" # Adjust the port as needed
+#    depends_on:
+#      - backend
+#    restart: unless-stopped
+

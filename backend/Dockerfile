@@ -9,13 +9,15 @@ WORKDIR /app
 COPY uv.lock /app/uv.lock
 COPY pyproject.toml /app/pyproject.toml
 
-# Install dependencies
-RUN uv sync --frozen --no-install-project
-
-# Copy the project into the image
+# Copy the entire project into the image
 COPY . /app
 
-# Sync the project
-RUN uv sync --frozen
+# Install dependencies (after copying the full project)
+#RUN uv sync --frozen --no-install-project
 
-CMD [ "python", "tasklist3000/foo.py" ]
+# Sync the project
+#RUN uv sync --frozen
+
+RUN uv pip install --system .
+
+CMD [ "python", "-m", "tasklist3000.main" ]

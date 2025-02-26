@@ -87,4 +87,4 @@ async def delete_task(request: Request) -> Dict[str, str]:
 
 # Start the Robyn app on port 8080
 if __name__ == "__main__":
-    app.start(port=8080)
+    app.start("0.0.0.0", port=8080)
