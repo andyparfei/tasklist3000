@@ -1,13 +1,14 @@
-from robyn import Robyn
+from robyn import Robyn, Request
 import sqlite3
 import json
 import os
+from typing import Dict
 from . import crud
-from .models import SessionLocal
+from .models import SessionLocal, Task
 
 app = Robyn(__file__)
 
-def serialize_task(task):
+def serialize_task(task: Task) -> Dict[str, Request]:
     return {
         "id": task.id,
         "title": task.title,
@@ -16,17 +17,17 @@ def serialize_task(task):
 
 # Define the root endpoint
 @app.get("/")
-async def h(request):
+async def h(request: Request) -> str:
     return "Hello, world!"
 
 # Define the status endpoint
 @app.get("/status")
-async def h(request):
+async def h(request: Request) -> str:
     return "Up and running"
 
 # Define the endpoint to retrieve all tasks
 @app.get("/tasks")
-async def get_tasks(request):
+async def get_tasks(request: Request) -> str:
     with SessionLocal() as db:
         skip = request.query_params.get("skip", "0")
         limit = request.query_params.get("limit", "100")
@@ -36,7 +37,7 @@ async def get_tasks(request):
 
 # Define the endpoint to create a new task
 @app.post("/tasks")
-async def add_task(request):
+async def add_task(request: Request) -> Dict[str, Request]:
     with SessionLocal() as db:
         task = request.json()
         insertion = crud.create_task(db, task)
@@ -52,7 +53,7 @@ async def add_task(request):
 
 # Define the endpoint to get a single task
 @app.get("/tasks/:task_id")
-async def get_task(request):
+async def get_task(request: Request) -> Task:
     task_id = int(request.path_params.get("task_id"))
     with SessionLocal() as db:
         task = crud.get_task(db, task_id=task_id)
@@ -64,7 +65,7 @@ async def get_task(request):
 
 # Define the endpoint to update an existing task
 @app.put("/tasks/:task_id")
-async def update_task(request):
+async def update_task(request: Request) -> Dict[str, str]:
     task_id = int(request.path_params.get("task_id"))
     with SessionLocal() as db:
         task_data = request.json()
@@ -75,7 +76,7 @@ async def update_task(request):
 
 # Define the endpoint to delete a task
 @app.delete("/tasks/:task_id")
-async def delete_task(request):
+async def delete_task(request: Request) -> Dict[str, str]:
     task_id = int(request.path_params.get("task_id"))
     with SessionLocal() as db:
         success = crud.delete_task(db, task_id=task_id)
