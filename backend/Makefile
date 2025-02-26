@@ -47,6 +47,6 @@ help:
 
 .PHONY: test
 
-test:
+test2:
 	pytest --maxfail=1 --disable-warnings -q -n auto -m "not serial"
 	pytest --maxfail=1 --disable-warnings -q -n 1 -m serial
