@@ -6,7 +6,7 @@ from typing import Generator
 import httpx
 import pytest
 
-os.environ["DATABASE_URL"] = "sqlite:///./tasks_test.db"
+os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 
 from tasklist3000.main import app
 from tasklist3000.models import Base, engine
