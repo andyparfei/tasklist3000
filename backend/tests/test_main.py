@@ -1,11 +1,10 @@
-import pytest
-import sqlite3
-import json
-import httpx
 import os
 import threading
 import time
 from typing import Generator
+
+import httpx
+import pytest
 
 os.environ["DATABASE_URL"] = "sqlite:///./tasks_test.db"
 
