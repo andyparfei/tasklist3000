@@ -1,13 +1,12 @@
 from datetime import datetime
-import os
 
 from sqlalchemy import create_engine, Integer, String, Text, DateTime, func, Enum
 from sqlalchemy.orm import Mapped, mapped_column, declarative_base, sessionmaker
 from sqlalchemy.engine import Engine
 
-from .config import COLOR_VALUES, PRIORITY_VALUES, STATUS_VALUES
+from .config import DB_PATH, COLOR_VALUES, PRIORITY_VALUES, STATUS_VALUES
 
-DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./tasks.db")
+DATABASE_URL: str = DB_PATH
 
 engine: Engine = create_engine(DATABASE_URL)
 SessionLocal: sessionmaker = sessionmaker(autocommit=False, autoflush=False, bind=engine)
