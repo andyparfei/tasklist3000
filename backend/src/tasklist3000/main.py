@@ -2,15 +2,17 @@ from robyn import Robyn
 import sqlite3
 import json
 import os
+from . import crud
+from .models import SessionLocal
 
 app = Robyn(__file__)
 
-# Initialize SQLite database
-conn = sqlite3.connect('tasks.db', check_same_thread=False)
-c = conn.cursor()
-c.execute('''CREATE TABLE IF NOT EXISTS tasks
-             (id INTEGER PRIMARY KEY, title TEXT, description TEXT)''')
-conn.commit()
+def serialize_task(task):
+    return {
+        "id": task.id,
+        "title": task.title,
+        "description": task.description,
+    }
 
 # Define the root endpoint
 @app.get("/")
@@ -25,38 +27,61 @@ async def h(request):
 # Define the endpoint to retrieve all tasks
 @app.get("/tasks")
 async def get_tasks(request):
-    c.execute('SELECT * FROM tasks')
-    tasks = c.fetchall()
+    with SessionLocal() as db:
+        skip = request.query_params.get("skip", "0")
+        limit = request.query_params.get("limit", "100")
+        tasks = crud.get_tasks(db, skip=skip, limit=limit)
+    tasks = [serialize_task(task) for task in tasks]
     return json.dumps(tasks)
 
 # Define the endpoint to create a new task
 @app.post("/tasks")
-async def create_task(request):
-    data = request.json()
-    title = data.get('title')
-    description = data.get('description')
-    c.execute('INSERT INTO tasks (title, description) VALUES (?, ?)', (title, description))
-    conn.commit()
-    return "Task created successfully"
+async def add_task(request):
+    with SessionLocal() as db:
+        task = request.json()
+        insertion = crud.create_task(db, task)
+
+    if insertion is None:
+        raise Exception("Task not added")
+
+    return {
+        "description": "Task added successfully",
+        "status_code": 200,
+        "id": insertion.id  # Return the new task's ID
+    }
+
+# Define the endpoint to get a single task
+@app.get("/tasks/:task_id")
+async def get_task(request):
+    task_id = int(request.path_params.get("task_id"))
+    with SessionLocal() as db:
+        task = crud.get_task(db, task_id=task_id)
+
+    if task is None:
+        raise Exception("task not found")
+
+    return task
 
 # Define the endpoint to update an existing task
 @app.put("/tasks/:task_id")
 async def update_task(request):
-    task_id = request.path_params.get("crime_id")
-    data = request.json()
-    title = data.get('title')
-    description = data.get('description')
-    c.execute('UPDATE tasks SET title = ?, description = ? WHERE id = ?', (title, description, task_id))
-    conn.commit()
-    return "Task updated successfully"
+    task_id = int(request.path_params.get("task_id"))
+    with SessionLocal() as db:
+        task_data = request.json()
+        updated = crud.update_task(db, task_id=task_id, task=task_data)
+    if not updated:
+        raise Exception("Task not updated")
+    return {"description": "Task updated successfully"}
 
 # Define the endpoint to delete a task
 @app.delete("/tasks/:task_id")
 async def delete_task(request):
-    task_id = request.path_params.get("crime_id")
-    c.execute('DELETE FROM tasks WHERE id = ?', (task_id,))
-    conn.commit()
-    return "Task deleted successfully"
+    task_id = int(request.path_params.get("task_id"))
+    with SessionLocal() as db:
+        success = crud.delete_task(db, task_id=task_id)
+    if not success:
+        raise Exception("task not found")
+    return {"description": "Task deleted successfully"}
 
 # Start the Robyn app on port 8080
 if __name__ == "__main__":
