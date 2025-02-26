@@ -1,6 +1,7 @@
 from typing import List, Optional, Dict
 
 from robyn import Request
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .models import Task
@@ -11,11 +12,15 @@ def get_task(db: Session, task_id: int) -> Optional[Task]:
 def get_tasks(db: Session, skip: int = 0, limit: int = 100) -> List[Task]:
     return db.query(Task).offset(skip).limit(limit).all()
 
-def create_task(db: Session, task: Dict[str, Request]) -> Task:
+def create_task(db: Session, task: Dict[str, Task]) -> Task:
     db_task = Task(**task)
     db.add(db_task)
-    db.commit()
-    db.refresh(db_task)
+    try:
+        db.commit()
+        db.refresh(db_task)
+    except IntegrityError as e:
+        db.rollback()
+        raise ValueError("Task creation failed due to missing required fields") from e
     return db_task
 
 def update_task(db: Session, task_id: int, task: Dict[str, Request]) -> Optional[Task]:

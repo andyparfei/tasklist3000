@@ -1,8 +1,8 @@
 from datetime import datetime
 import os
 
-from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime
-from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy import create_engine, Integer, String, Text, DateTime, func
+from sqlalchemy.orm import Mapped, mapped_column, declarative_base, sessionmaker
 from sqlalchemy.engine import Engine
 
 DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./tasks.db")
@@ -15,12 +15,16 @@ Base = declarative_base()
 class Task(Base):
     __tablename__ = "tasks"
 
-    id: int = Column(Integer, primary_key=True, index=True)
-    title: str = Column(String, index=True)
-    description: str = Column(String)
-    full_text: str = Column(Text)
-    color: str = Column(String)
-    priority: str = Column(String)
-    status: str = Column(String)
-    created_at = Column(DateTime, default=lambda: datetime.now(datetime.timezone.utc))
-    modified_at = Column(DateTime, default=lambda: datetime.now(datetime.timezone.utc), onupdate=lambda: datetime.now(datetime.timezone.utc))
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    title: Mapped[str] = mapped_column(String, index=True)
+    description: Mapped[str] = mapped_column(String)
+    full_text: Mapped[str] = mapped_column(Text)
+    color: Mapped[str] = mapped_column(String)
+    priority: Mapped[str] = mapped_column(String)
+    status: Mapped[str] = mapped_column(String)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now()
+    )
+    modified_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
