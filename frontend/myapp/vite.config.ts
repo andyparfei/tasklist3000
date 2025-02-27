@@ -8,8 +8,16 @@ export default defineConfig({
 	proxy: {
 		// You can add other endpoints as needed
 		'/tasks': {
-		  target: 'http://localhost:5001',
+		  target: 'http://backend:8080',
 		  changeOrigin: true
+		},
+		'/status': {
+			target: 'http://backend:8080',
+			changeOrigin: true
+		},
+		'/config': {
+			target: 'http://backend:8080',
+			changeOrigin: true
 		}
 	}
 	},

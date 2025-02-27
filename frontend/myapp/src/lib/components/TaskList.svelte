@@ -3,15 +3,7 @@
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
   import { Textarea } from "$lib/components/ui/textarea";
-  
-  // Define the shape of a Task
-  interface Task {
-    id: number;
-    title: string;
-    description?: string;
-    status?: string;
-    priority?: string;
-  }
+  import type { Task } from '../types';
 
   let tasks: Task[] = [];
   let loading = true;
@@ -23,6 +15,8 @@
     title: '',
     description: '',
     status: '',
+    color: '',
+    full_text: '',
     priority: ''
   };
   let showAddForm = false;
@@ -100,7 +94,7 @@
       if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
       // After adding, refetch tasks (or push to tasks array if your backend returns the new record)
       await fetchTasks();
-      newTask = { id: 0, title: '', description: '', status: '', priority: '' };
+      newTask = { id: 0, title: '', description: '', status: '', priority: '', color: '', full_text: '' };
       showAddForm = false;
     } catch (err: any) {
       error = err.message;
@@ -231,8 +225,9 @@
       <form on:submit|preventDefault={addTask}>
         <div class="grid md:grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700">Title</label>
+            <label for="new-title" class="block text-sm font-medium text-gray-700">Title</label>
             <Input
+              id="new-title"
               type="text"
               bind:value={newTask.title}
               placeholder="Task title"
@@ -241,8 +236,9 @@
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700">Status</label>
+            <label for="new-status" class="block text-sm font-medium text-gray-700">Status</label>
             <Input
+              id="new-status"
               type="text"
               bind:value={newTask.status}
               placeholder="e.g. Bug, Feature..."
@@ -250,8 +246,9 @@
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700">Priority</label>
+            <label for="new-priority" class="block text-sm font-medium text-gray-700">Priority</label>
             <Input
+              id="new-priority"
               type="text"
               bind:value={newTask.priority}
               placeholder="e.g. High, Medium, Low"
@@ -259,8 +256,9 @@
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700">Description</label>
+            <label for="new-description" class="block text-sm font-medium text-gray-700">Description</label>
             <Textarea
+              id="new-description"
               bind:value={newTask.description}
               placeholder="Task description"
               rows="3"
@@ -326,8 +324,9 @@
                 <td class="px-4 py-2" colspan="5">
                   <div class="grid md:grid-cols-2 gap-4">
                     <div>
-                      <label class="block text-sm font-medium text-gray-700">Title</label>
+                      <label for="edit-title" class="block text-sm font-medium text-gray-700">Title</label>
                       <Input
+                        id="edit-title"
                         type="text"
                         bind:value={editingTask.title}
                         required
@@ -335,24 +334,27 @@
                       />
                     </div>
                     <div>
-                      <label class="block text-sm font-medium text-gray-700">Status</label>
+                      <label for="edit-status" class="block text-sm font-medium text-gray-700">Status</label>
                       <Input
+                        id="edit-status"
                         type="text"
                         bind:value={editingTask.status}
                         class="mt-1 w-full"
                       />
                     </div>
                     <div>
-                      <label class="block text-sm font-medium text-gray-700">Priority</label>
+                      <label for="edit-priority" class="block text-sm font-medium text-gray-700">Priority</label>
                       <Input
+                        id="edit-priority"
                         type="text"
                         bind:value={editingTask.priority}
                         class="mt-1 w-full"
                       />
                     </div>
                     <div>
-                      <label class="block text-sm font-medium text-gray-700">Description</label>
+                      <label for="edit-description" class="block text-sm font-medium text-gray-700">Description</label>
                       <Textarea
+                        id="edit-description"
                         bind:value={editingTask.description}
                         rows="3"
                         class="mt-1 w-full"

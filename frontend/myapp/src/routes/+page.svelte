@@ -8,5 +8,4 @@
   <meta name="description" content="A simple task management application">
 </svelte:head>
 
-<!--<TaskList />-->
 <TaskManager />
