@@ -17,7 +17,7 @@ COPY . /app
 
 # Sync the project
 #RUN uv sync --frozen
-
+EXPOSE 8080
 RUN uv pip install --system .
 
 CMD [ "python", "-m", "tasklist3000.main" ]
