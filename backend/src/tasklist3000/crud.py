@@ -16,7 +16,9 @@ def get_tasks(db: Session, skip: int = 0, limit: int = 100) -> list[Task]:
 
 
 def create_task(db: Session, task: dict[str, Task]) -> Task:
-    db_task = Task(**task)
+    # Create a copy of the task data and remove the id field to let the database auto-assign it
+    task_data = {k: v for k, v in task.items() if k != 'id'}
+    db_task = Task(**task_data)
     db.add(db_task)
     try:
         db.commit()

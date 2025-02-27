@@ -1,14 +1,15 @@
 import json
-from typing import Any, List, TypedDict
+from typing import Any, TypedDict
 
-from robyn import ALLOW_CORS, Request, Robyn
+from flask import Flask, jsonify, request
+from flask_cors import CORS
 
 from tasklist3000 import crud
 from tasklist3000.config import HOST, PORT, CORS_ALLOWED_ORIGINS, COLOR_VALUES, PRIORITY_VALUES, STATUS_VALUES
 from tasklist3000.models import Base, SessionLocal, Task, engine
 
-app = Robyn(__file__)
-ALLOW_CORS(app, origins=CORS_ALLOWED_ORIGINS)
+app = Flask(__name__)
+CORS(app, resources={r"/*": {"origins": CORS_ALLOWED_ORIGINS}})
 
 Base.metadata.create_all(bind=engine)
 
@@ -40,9 +41,9 @@ class TaskDict(TypedDict):
 
 
 class ConfigDict(TypedDict):
-    priority_values: List[Any]
-    status_values: List[Any]
-    color_values: List[Any]
+    priority_values: list[Any]
+    status_values: list[Any]
+    color_values: list[Any]
 
 
 class AddTaskResponseDict(TypedDict):
@@ -72,38 +73,60 @@ def serialize_task(task: Task) -> TaskDict:
     }
 
 
+# Error handlers
+@app.errorhandler(TaskNotFoundException)
+def handle_task_not_found(e):
+    return jsonify({"error": str(e)}), 404
+
+
+@app.errorhandler(TaskNotAddedException)
+def handle_task_not_added(e):
+    return jsonify({"error": str(e)}), 400
+
+
+@app.errorhandler(TaskIdMissingException)
+def handle_task_id_missing(e):
+    return jsonify({"error": str(e)}), 400
+
+
+@app.errorhandler(TaskNotUpdatedException)
+def handle_task_not_updated(e):
+    return jsonify({"error": str(e)}), 400
+
+
 # Define the root endpoint
-@app.get("/")
-async def root(request: Request) -> str:
+@app.route("/", methods=["GET"])
+def root():
     return "Hello, world!"
 
 
-# Define the status endpoint (renamed to avoid duplicate function names)
-@app.get("/status")
-async def status_endpoint(request: Request) -> str:
+# Define the status endpoint
+@app.route("/status", methods=["GET"])
+def status_endpoint():
     return "Up and running"
 
 
-@app.get("/config")
-async def get_config(request: Request) -> ConfigDict:
+@app.route("/config", methods=["GET"])
+def get_config():
     return {"priority_values": PRIORITY_VALUES, "status_values": STATUS_VALUES, "color_values": COLOR_VALUES}
 
 
-@app.get("/tasks")
-async def get_tasks(request: Request) -> List[TaskDict]:
+@app.route("/tasks", methods=["GET"])
+def get_tasks():
     with SessionLocal() as db:
         # Force fallback in case query_params returns None.
-        skip = int(request.query_params.get("skip") or "0")
-        limit = int(request.query_params.get("limit") or "100")
+        skip = int(request.args.get("skip", 0))
+        limit = int(request.args.get("limit", 100))
         tasks = crud.get_tasks(db, skip=skip, limit=limit)
     tasks_serialized = [serialize_task(task) for task in tasks]
     return json.dumps(tasks_serialized)
 
+
 # Endpoint to create a new task
-@app.post("/tasks")
-async def add_task(request: Request) -> AddTaskResponseDict:
+@app.route("/tasks", methods=["POST"])
+def add_task():
     with SessionLocal() as db:
-        task_data = request.json()
+        task_data = request.get_json()
         insertion = crud.create_task(db, task_data)
 
     if insertion is None:
@@ -117,30 +140,23 @@ async def add_task(request: Request) -> AddTaskResponseDict:
 
 
 # Endpoint to get a single task
-@app.get("/tasks/:task_id")
-async def get_task(request: Request) -> TaskDict:
-    task_id_str = request.path_params.get("task_id")
-    if task_id_str is None:
-        raise TaskIdMissingException("Task id missing")
-    task_id = int(task_id_str)
+@app.route("/tasks/<int:task_id>", methods=["GET"])
+def get_task(task_id):
     with SessionLocal() as db:
         task = crud.get_task(db, task_id=task_id)
 
     if task is None:
         raise TaskNotFoundException("Task not found")
 
+    # Return serialized task to match Robyn's behavior
     return serialize_task(task)
 
 
 # Endpoint to update an existing task
-@app.put("/tasks/:task_id")
-async def update_task(request: Request) -> UpdateTaskResponseDict:
-    task_id_str = request.path_params.get("task_id")
-    if task_id_str is None:
-        raise TaskIdMissingException("Task id missing")
-    task_id = int(task_id_str)
+@app.route("/tasks/<int:task_id>", methods=["PUT"])
+def update_task(task_id):
     with SessionLocal() as db:
-        task_data = request.json()
+        task_data = request.get_json()
         updated = crud.update_task(db, task_id=task_id, task=task_data)
     if not updated:
         raise TaskNotUpdatedException("Task not updated")
@@ -148,12 +164,8 @@ async def update_task(request: Request) -> UpdateTaskResponseDict:
 
 
 # Endpoint to delete a task
-@app.delete("/tasks/:task_id")
-async def delete_task(request: Request) -> DeleteTaskResponseDict:
-    task_id_str = request.path_params.get("task_id")
-    if task_id_str is None:
-        raise TaskIdMissingException("Task id missing")
-    task_id = int(task_id_str)
+@app.route("/tasks/<int:task_id>", methods=["DELETE"])
+def delete_task(task_id):
     with SessionLocal() as db:
         success = crud.delete_task(db, task_id=task_id)
     if not success:
@@ -161,6 +173,6 @@ async def delete_task(request: Request) -> DeleteTaskResponseDict:
     return {"description": "Task deleted successfully"}
 
 
-# Start the Robyn app on port 8080
+# Start the Flask app on port 8080
 if __name__ == "__main__":
-    app.start(HOST, port=PORT)
+    app.run(host=HOST, port=PORT)

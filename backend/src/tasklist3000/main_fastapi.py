@@ -1,31 +1,45 @@
 import json
-from typing import Any, List, TypedDict
+from typing import Any, Dict, List, Optional
 
-from robyn import ALLOW_CORS, Request, Robyn
+from typing_extensions import TypedDict
+
+from fastapi import FastAPI, HTTPException, Query, Request, Response
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 from tasklist3000 import crud
 from tasklist3000.config import HOST, PORT, CORS_ALLOWED_ORIGINS, COLOR_VALUES, PRIORITY_VALUES, STATUS_VALUES
 from tasklist3000.models import Base, SessionLocal, Task, engine
 
-app = Robyn(__file__)
-ALLOW_CORS(app, origins=CORS_ALLOWED_ORIGINS)
+app = FastAPI()
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=CORS_ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 Base.metadata.create_all(bind=engine)
 
 
-class TaskNotFoundException(Exception):
+# Pydantic models for request and response validation
+class TaskBase(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[str] = None
+    priority: Optional[str] = None
+    color: Optional[str] = None
+    full_text: Optional[str] = None
+
+
+class TaskCreate(TaskBase):
     pass
 
 
-class TaskNotAddedException(Exception):
-    pass
-
-
-class TaskIdMissingException(Exception):
-    pass
-
-
-class TaskNotUpdatedException(Exception):
+class TaskUpdate(TaskBase):
     pass
 
 
@@ -40,9 +54,9 @@ class TaskDict(TypedDict):
 
 
 class ConfigDict(TypedDict):
-    priority_values: List[Any]
-    status_values: List[Any]
-    color_values: List[Any]
+    priority_values: list[Any]
+    status_values: list[Any]
+    color_values: list[Any]
 
 
 class AddTaskResponseDict(TypedDict):
@@ -72,42 +86,49 @@ def serialize_task(task: Task) -> TaskDict:
     }
 
 
+# Dependency to get the database session
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
 # Define the root endpoint
 @app.get("/")
-async def root(request: Request) -> str:
-    return "Hello, world!"
+async def root():
+    return Response(content="Hello, world!", media_type="text/plain")
 
 
-# Define the status endpoint (renamed to avoid duplicate function names)
+# Define the status endpoint
 @app.get("/status")
-async def status_endpoint(request: Request) -> str:
-    return "Up and running"
+async def status_endpoint():
+    return Response(content="Up and running", media_type="text/plain")
 
 
 @app.get("/config")
-async def get_config(request: Request) -> ConfigDict:
+async def get_config() -> ConfigDict:
     return {"priority_values": PRIORITY_VALUES, "status_values": STATUS_VALUES, "color_values": COLOR_VALUES}
 
 
 @app.get("/tasks")
-async def get_tasks(request: Request) -> List[TaskDict]:
+async def get_tasks(skip: int = Query(0), limit: int = Query(100)) -> str:
     with SessionLocal() as db:
-        # Force fallback in case query_params returns None.
-        skip = int(request.query_params.get("skip") or "0")
-        limit = int(request.query_params.get("limit") or "100")
         tasks = crud.get_tasks(db, skip=skip, limit=limit)
     tasks_serialized = [serialize_task(task) for task in tasks]
     return json.dumps(tasks_serialized)
 
+
 # Endpoint to create a new task
 @app.post("/tasks")
-async def add_task(request: Request) -> AddTaskResponseDict:
+async def add_task(task: Request) -> AddTaskResponseDict:
+    task_data = await task.json()
     with SessionLocal() as db:
-        task_data = request.json()
         insertion = crud.create_task(db, task_data)
 
     if insertion is None:
-        raise TaskNotAddedException("Task not added")
+        raise HTTPException(status_code=400, detail="Task not added")
 
     return {
         "description": "Task added successfully",
@@ -117,50 +138,40 @@ async def add_task(request: Request) -> AddTaskResponseDict:
 
 
 # Endpoint to get a single task
-@app.get("/tasks/:task_id")
-async def get_task(request: Request) -> TaskDict:
-    task_id_str = request.path_params.get("task_id")
-    if task_id_str is None:
-        raise TaskIdMissingException("Task id missing")
-    task_id = int(task_id_str)
+@app.get("/tasks/{task_id}")
+async def get_task(task_id: int) -> TaskDict:
     with SessionLocal() as db:
         task = crud.get_task(db, task_id=task_id)
 
     if task is None:
-        raise TaskNotFoundException("Task not found")
+        raise HTTPException(status_code=404, detail="Task not found")
 
+    # Serialize the SQLAlchemy model to a dictionary
     return serialize_task(task)
 
 
 # Endpoint to update an existing task
-@app.put("/tasks/:task_id")
-async def update_task(request: Request) -> UpdateTaskResponseDict:
-    task_id_str = request.path_params.get("task_id")
-    if task_id_str is None:
-        raise TaskIdMissingException("Task id missing")
-    task_id = int(task_id_str)
+@app.put("/tasks/{task_id}")
+async def update_task(task_id: int, request: Request) -> UpdateTaskResponseDict:
+    task_data = await request.json()
     with SessionLocal() as db:
-        task_data = request.json()
         updated = crud.update_task(db, task_id=task_id, task=task_data)
     if not updated:
-        raise TaskNotUpdatedException("Task not updated")
+        raise HTTPException(status_code=400, detail="Task not updated")
     return {"description": "Task updated successfully"}
 
 
 # Endpoint to delete a task
-@app.delete("/tasks/:task_id")
-async def delete_task(request: Request) -> DeleteTaskResponseDict:
-    task_id_str = request.path_params.get("task_id")
-    if task_id_str is None:
-        raise TaskIdMissingException("Task id missing")
-    task_id = int(task_id_str)
+@app.delete("/tasks/{task_id}")
+async def delete_task(task_id: int) -> DeleteTaskResponseDict:
     with SessionLocal() as db:
         success = crud.delete_task(db, task_id=task_id)
     if not success:
-        raise TaskNotFoundException("Task not found")
+        raise HTTPException(status_code=404, detail="Task not found")
     return {"description": "Task deleted successfully"}
 
 
-# Start the Robyn app on port 8080
+# Start the FastAPI app
 if __name__ == "__main__":
-    app.start(HOST, port=PORT)
+    import uvicorn
+    uvicorn.run(app, host=HOST, port=PORT)

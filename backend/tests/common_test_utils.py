@@ -1,58 +1,31 @@
-import os
-import threading
-import time
-from collections.abc import Generator
-
 import httpx
 import pytest
 
 from tasklist3000.config import COLOR_VALUES, PRIORITY_VALUES, STATUS_VALUES
-from tasklist3000.main import app
-from tasklist3000.models import Base, engine
 
-# disable parallel testin for this these tests when running test command
+# disable parallel testing for these tests when running test command
 pytestmark = pytest.mark.serial
-
-# Use an in-memory SQLite database for testing
-os.environ["DATABASE_URL"] = "sqlite:///:memory:"
-
-# Setup and teardown for the SQLite database and server
-@pytest.fixture(scope="module", autouse=True)
-def setup_server_and_db() -> Generator[None, None, None]:
-    # Create all tables defined in your SQLAlchemy models
-    Base.metadata.create_all(bind=engine)
-
-    # Start the server in a separate thread
-    server_thread = threading.Thread(target=app.start, kwargs={"host": "127.0.0.1", "port": 8000})
-    server_thread.daemon = True
-    server_thread.start()
-
-    # Give the server a moment to start
-    time.sleep(1)
-
-    yield
-
-    # Teardown: Drop all tables
-    Base.metadata.drop_all(bind=engine)
-
 
 # Base URL for tests
 BASE_URL = "http://127.0.0.1:8000"
 
 
 def test_root_endpoint() -> None:
+    """Test the root endpoint of the API."""
     response = httpx.get(f"{BASE_URL}/")
     assert response.status_code == 200
     assert response.text == "Hello, world!"
 
 
 def test_status_endpoint() -> None:
+    """Test the status endpoint of the API."""
     response = httpx.get(f"{BASE_URL}/status")
     assert response.status_code == 200
     assert response.text == "Up and running"
 
 
 def test_create_task() -> None:
+    """Test creating a new task."""
     task = {
         "title": "Test Task",
         "description": "This is a test task",
@@ -68,6 +41,7 @@ def test_create_task() -> None:
 
 
 def test_get_tasks() -> None:
+    """Test retrieving all tasks."""
     response = httpx.get(f"{BASE_URL}/tasks")
     assert response.status_code == 200
     tasks = response.json()
@@ -75,6 +49,7 @@ def test_get_tasks() -> None:
 
 
 def test_update_task() -> None:
+    """Test updating an existing task."""
     # First, create a task to update
     task = {
         "title": "Test Task",
@@ -97,6 +72,7 @@ def test_update_task() -> None:
 
 
 def test_delete_task() -> None:
+    """Test deleting a task."""
     # First, create a task to delete
     task = {
         "title": "Test Task",
@@ -118,6 +94,7 @@ def test_delete_task() -> None:
 
 
 def test_get_config() -> None:
+    """Test retrieving configuration values."""
     response = httpx.get(f"{BASE_URL}/config")
     assert response.status_code == 200
     config = response.json()
