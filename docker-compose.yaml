@@ -6,6 +6,8 @@ services:
     ports:
       - "5001:8080"  # Adjust the port as needed
     restart: unless-stopped
+    volumes:
+      - db-data:/data  # Mount the volume for persistent database storage
 
   frontend:
     build:
@@ -17,3 +19,5 @@ services:
       - backend
     restart: unless-stopped
 
+volumes:
+  db-data:  # Named volume for persistent database storage
