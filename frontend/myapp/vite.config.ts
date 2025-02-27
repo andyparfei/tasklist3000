@@ -4,22 +4,22 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
 	plugins: [sveltekit()],
-    server: {
-	proxy: {
-		// You can add other endpoints as needed
-		'/tasks': {
-		  target: 'http://backend:8080',
-		  changeOrigin: true
-		},
-		'/status': {
-			target: 'http://backend:8080',
-			changeOrigin: true
-		},
-		'/config': {
-			target: 'http://backend:8080',
-			changeOrigin: true
+	server: {
+		proxy: {
+			// You can add other endpoints as needed
+			'/tasks': {
+				target: 'http://backend:8080',
+				changeOrigin: true
+			},
+			'/status': {
+				target: 'http://backend:8080',
+				changeOrigin: true
+			},
+			'/config': {
+				target: 'http://backend:8080',
+				changeOrigin: true
+			}
 		}
-	}
 	},
 	test: {
 		workspace: [
